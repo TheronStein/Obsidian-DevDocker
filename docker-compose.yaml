@@ -1,0 +1,50 @@
+name: obsidian-devcontainer
+services:
+  obsidian:
+    image: lscr.io/linuxserver/obsidian:latest
+    container_name: obsidian
+    security_opt:
+      - seccomp:unconfined
+    volumes:
+      - /opt/obsidian/vaults:/vaults
+      - /opt/obsidian/config:/config
+      - /opt/obsidian/plugins:/obsidian/sample-plugin
+      - /opt/obsidian/api:/obsidian/obsidian-api
+    networks:
+      - nginx
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - NODE_ENV=development  # Setting development mode for plugin development
+    depends_on:
+      proxy:
+        condition: service_healthy  # Optional: waits until the proxy is healthy
+    shm_size: "1gb"
+    restart: unless-stopped
+    mem_limit: 512m    # Optional resource limit
+    cpus: "0.5"        # Optional CPU limit
+
+  proxy:
+    image: nginx
+    volumes:
+      - type: bind
+        source: ./proxy/nginx.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+    ports:
+      - 8080:8080
+    depends_on:
+      obsidian:
+        condition: service_started  # Ensures obsidian service is running before starting
+    networks:
+      - nginx
+    restart: unless-stopped
+
+networks:
+  nginx: {}
+
+volumes:
+  obsidian_vaults:
+  obsidian_config:
+  obsidian_plugins:
+  obsidian_api:
